@@ -1,0 +1,217 @@
+---
+# =============================================================================
+# Namespace
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: inference-bench
+  labels:
+    app: inference-bench
+
+---
+# =============================================================================
+# ServiceAccount
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bench-runner
+  namespace: inference-bench
+  labels:
+    app: inference-bench
+    component: bench-runner
+
+---
+# =============================================================================
+# ConfigMap — inline quick.yaml benchmark configuration
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bench-config
+  namespace: inference-bench
+  labels:
+    app: inference-bench
+    component: config
+data:
+  quick.yaml: |
+    name: quick-sweep
+    description: >
+      A fast benchmark sweep for CI validation. Covers common batch sizes and
+      two token-length targets. Suitable for pre-deployment regression checks.
+
+    backends:
+      - vllm
+      - nim
+
+    workloads:
+      - single_turn
+
+    batch_sizes:
+      - 1
+      - 4
+      - 16
+
+    max_tokens:
+      - 128
+      - 512
+
+    num_requests: 50
+    warmup_requests: 5
+    temperature: 0.0
+
+    timeout_per_request: 120
+    output_dir: /results
+
+---
+# =============================================================================
+# Secret — NIM API credentials
+# Base64-encoded placeholder: echo -n "nvapi-placeholder" | base64
+# Replace with real credentials before deploying to production.
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nim-credentials
+  namespace: inference-bench
+  labels:
+    app: inference-bench
+    component: credentials
+type: Opaque
+data:
+  # echo -n "nvapi-placeholder" | base64  →  bnZhcGktcGxhY2Vob2xkZXI=
+  NIM_API_KEY: bnZhcGktcGxhY2Vob2xkZXI=
+
+---
+# =============================================================================
+# PersistentVolumeClaim — benchmark results storage
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bench-results
+  namespace: inference-bench
+  labels:
+    app: inference-bench
+    component: results-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# =============================================================================
+# Job — NIM benchmark sweep
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nim-bench-sweep
+  namespace: inference-bench
+  labels:
+    app: inference-bench
+    component: sweep-job
+spec:
+  # Do not restart on failure — failed runs produce partial CSVs that can
+  # confuse the reporter.  Set backoffLimit=0 to let the operator decide
+  # whether to re-run manually.
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400   # clean up job object after 24 h
+
+  template:
+    metadata:
+      labels:
+        app: inference-bench
+        component: sweep-job
+    spec:
+      serviceAccountName: bench-runner
+      restartPolicy: Never
+
+      # -----------------------------------------------------------------------
+      # Volumes
+      # -----------------------------------------------------------------------
+      volumes:
+        - name: bench-config-vol
+          configMap:
+            name: bench-config
+        - name: nim-credentials-vol
+          secret:
+            secretName: nim-credentials
+        - name: bench-results-vol
+          persistentVolumeClaim:
+            claimName: bench-results
+
+      # -----------------------------------------------------------------------
+      # Main container
+      # -----------------------------------------------------------------------
+      containers:
+        - name: bench-runner
+          # Replace with your actual registry / image tag before deploying.
+          image: nvcr.io/nvidia/inference-bench:latest
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - python
+            - bench/run_bench.py
+            - --backend
+            - nim
+            - --config
+            - /config/quick.yaml
+            - --output-dir
+            - /results
+
+          env:
+            # Inject the NIM API key from the Secret into the container
+            - name: NIM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nim-credentials
+                  key: NIM_API_KEY
+
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+
+          volumeMounts:
+            - name: bench-config-vol
+              mountPath: /config
+              readOnly: true
+            - name: nim-credentials-vol
+              mountPath: /run/secrets/nim
+              readOnly: true
+            - name: bench-results-vol
+              mountPath: /results
+
+      # -----------------------------------------------------------------------
+      # GPU toleration — allows scheduling on GPU-tainted nodes.
+      # The container itself does not request a GPU device, but this
+      # toleration allows it to land on GPU nodes alongside inference servers.
+      # Remove if the bench runner should stay on CPU-only nodes.
+      # -----------------------------------------------------------------------
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "1"
+          effect: "NoSchedule"
+
+      # -----------------------------------------------------------------------
+      # Node affinity — prefer GPU nodes for co-location with NIM server pods
+      # (optional; remove if not needed)
+      # -----------------------------------------------------------------------
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - key: nvidia.com/gpu.present
+                    operator: In
+                    values:
+                      - "true"
