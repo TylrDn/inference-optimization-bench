@@ -1,0 +1,238 @@
+# inference-optimization-bench — Cursor Rules
+
+## Project Identity
+
+This repo is the **NVIDIA Inference Optimization Benchmark Suite** — a key NVIDIA Solutions Architect portfolio asset demonstrating deep expertise in multi-backend LLM inference performance evaluation. It benchmarks vLLM, TensorRT-LLM, llama.cpp, NVIDIA Triton, and NVIDIA NIM across quantization strategies (AWQ, GPTQ, GGUF) and generates detailed latency/throughput reports. The NIM backend is the NVIDIA differentiator — always prioritize it.
+
+**Portfolio signal:** Demonstrates mastery of the full NVIDIA inference stack (TRT-LLM, Triton, NIM), quantization tradespace analysis, and production benchmark engineering. Hiring managers at NVIDIA, hyperscalers, and AI infra shops look for this exact combination.
+
+---
+
+## Tech Stack
+
+- **Python:** 3.11 (strict — no 3.12+ syntax, no 3.10- compatibility hacks)
+- **Inference backends:** vLLM ≥0.4.0, TensorRT-LLM 0.9.x, llama.cpp (via llama-cpp-python ≥0.2.56), NVIDIA Triton client (tritonclient[grpc,http] ≥2.44), NVIDIA NIM (OpenAI-compatible REST API at `https://integrate.api.nvidia.com/v1`)
+- **Quantization:** AutoAWQ ≥0.2.4, auto-gptq ≥0.7.1, llama.cpp GGUF conversion shell scripts
+- **Reporting:** Plotly ≥5.20, Plotly Dash ≥2.16, pandas ≥2.2, rich ≥13.7
+- **Config:** PyYAML ≥6.0, pydantic ≥2.6 (settings + data models)
+- **Observability:** Python `logging` stdlib (structured JSON logs to results/), no print()
+- **Testing:** pytest ≥8.1, pytest-mock, pytest-asyncio
+- **Linting/Typing:** ruff ≥0.4 (line-length=100), mypy ≥1.9 (strict mode)
+- **Task runner:** just (justfile at repo root)
+
+---
+
+## Architecture Overview
+
+```
+bench/
+  run_bench.py          ← CLI entrypoint; loads BACKEND_MAP, runs warmup → infer → report
+  sweep.py              ← parameter sweep across models × backends × quantizations
+  warmup.py             ← warm-up logic (N warmup requests before timing)
+  metrics.py            ← BenchmarkReport dataclass + metric computation (TTFT, throughput, P50/P95/P99)
+  backends/
+    base_backend.py     ← AbstractBackend ABC: health_check(), infer(), teardown()
+    vllm_backend.py     ← vLLM AsyncLLMEngine wrapper
+    triton_backend.py   ← Triton gRPC client
+    llamacpp_backend.py ← llama-cpp-python wrapper
+    nim_backend.py      ← NIM OpenAI-compat client  ← HIGHEST PRIORITY
+  workloads/
+    base_workload.py    ← WorkloadBase ABC
+    single_turn.py      ← simple prompt → response
+    multi_turn.py       ← conversation history
+    tool_calling.py     ← function call round-trips
+configs/
+  full_sweep.yaml       ← full production sweep config
+  quick.yaml            ← quick smoke-test sweep
+reporting/
+  generate_report.py    ← static HTML/PDF report generation
+  dashboard.py          ← Plotly Dash interactive web app
+results/                ← all benchmark outputs (CSV, JSON logs, HTML reports)
+deploy/k8s/             ← Kubernetes Job manifest for CI/CD benchmark runs
+```
+
+---
+
+## Coding Conventions
+
+### Type Hints
+- **Required on every function signature** — parameters and return types. No `Any` unless unavoidable (must add `# type: ignore` comment explaining why).
+- Use `from __future__ import annotations` at top of every file.
+- Prefer `X | None` over `Optional[X]` (Python 3.10+ union syntax).
+- Collections: `list[str]`, `dict[str, float]`, not `List`, `Dict`.
+
+### Docstrings
+- All public functions, classes, and methods: Google-style docstrings.
+- Include `Args:`, `Returns:`, `Raises:` sections.
+- One-line summary on first line, blank line before sections.
+
+### Logging
+- **Never use `print()`** — always `import logging; logger = logging.getLogger(__name__)`.
+- Use structured JSON logging for benchmark results: `logger.info("benchmark_complete", extra={"backend": ..., "ttft_ms": ..., "throughput_rps": ...})`.
+- Log levels: DEBUG for per-request timing, INFO for run summaries, WARNING for degraded performance, ERROR for backend failures.
+- Configure root logger in `run_bench.py` entrypoint only; never call `basicConfig()` in library modules.
+
+### Exception Handling
+- Define custom exception classes in `bench/exceptions.py`: `BackendUnavailableError`, `WarmupFailedError`, `BenchmarkConfigError`, `MetricComputationError`.
+- **Never use bare `except:`** — always catch specific exceptions.
+- Backends must raise `BackendUnavailableError` on health check failure, not `Exception`.
+- Always log exceptions with `logger.exception()` before re-raising.
+
+### Async
+- All backend `infer()` methods are `async def` — use `asyncio.gather()` for concurrent requests.
+- Use `aiohttp` for HTTP calls (not `requests` in async context).
+- Warmup and sweep functions are also async.
+
+---
+
+## Backend Interface Contract
+
+Every backend in `bench/backends/` MUST implement `AbstractBackend` exactly:
+
+```python
+from abc import ABC, abstractmethod
+from bench.metrics import InferenceResult
+
+class AbstractBackend(ABC):
+    @abstractmethod
+    async def health_check(self) -> bool: ...
+
+    @abstractmethod
+    async def infer(self, prompt: str, params: dict[str, Any]) -> InferenceResult: ...
+
+    @abstractmethod
+    async def teardown(self) -> None: ...
+```
+
+`InferenceResult` must contain: `ttft_ms: float`, `total_latency_ms: float`, `tokens_generated: int`, `prompt_tokens: int`, `raw_response: dict[str, Any]`.
+
+---
+
+## NIM Backend Specifics
+
+- Base URL: `https://integrate.api.nvidia.com/v1` (read from `NIM_API_KEY` + `NIM_BASE_URL` env vars via `python-dotenv`)
+- Use `openai` Python SDK (≥1.23) with `base_url=NIM_BASE_URL, api_key=NIM_API_KEY`
+- TTFT must be measured using streaming — set `stream=True`, record time-to-first-chunk
+- Model name from config (e.g. `meta/llama3-70b-instruct`, `mistralai/mixtral-8x7b-instruct-v0.1`)
+- Health check: GET `/v1/models` — 200 = healthy
+- Never hardcode model names; always read from benchmark config YAML
+
+---
+
+## Workload Interface Contract
+
+Every workload in `bench/workloads/` MUST implement:
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class WorkloadSample:
+    prompt: str
+    expected_length: int
+    metadata: dict[str, Any]
+
+class WorkloadBase:
+    def generate(self, n: int, seed: int = 42) -> list[WorkloadSample]: ...
+    def description(self) -> str: ...
+```
+
+---
+
+## Configuration Patterns
+
+- All configs are YAML files loaded via pydantic `BaseSettings` or `BaseModel`.
+- Config dataclasses live in `bench/config.py`: `BenchConfig`, `SweepConfig`, `BackendConfig`.
+- Never hardcode model paths, API URLs, or concurrency levels — always from config.
+- `.env` file for secrets (NIM_API_KEY, TRITON_URL, etc.) — loaded via `python-dotenv` at CLI entrypoint only.
+
+---
+
+## Structured JSON Logging to results/
+
+Every benchmark run must write a structured JSON log file:
+
+```python
+# Pattern: results/{run_id}_{backend}_{timestamp}.json
+{
+  "run_id": "uuid4",
+  "timestamp": "ISO8601",
+  "backend": "nim",
+  "model": "meta/llama3-70b-instruct",
+  "config": {...},
+  "metrics": {
+    "ttft_p50_ms": 0.0,
+    "ttft_p95_ms": 0.0,
+    "ttft_p99_ms": 0.0,
+    "throughput_rps": 0.0,
+    "latency_p50_ms": 0.0,
+    "latency_p95_ms": 0.0,
+    "latency_p99_ms": 0.0,
+    "total_requests": 0,
+    "failed_requests": 0
+  },
+  "raw_samples": [...]
+}
+```
+
+---
+
+## Test Conventions
+
+- Test files mirror source: `tests/test_nim_backend.py` for `bench/backends/nim_backend.py`.
+- **Mock all GPU/network calls** in unit tests — use `pytest-mock` `mocker.patch`.
+- Use `@pytest.mark.parametrize` for backend variants and concurrency levels.
+- Fixtures for `BenchConfig`, `BackendConfig`, `WorkloadSample` in `tests/conftest.py`.
+- Mark slow integration tests with `@pytest.mark.integration` — excluded from `pytest` default run.
+- All tests must pass mypy in strict mode.
+
+```python
+# Good test pattern
+@pytest.mark.parametrize("backend", ["nim", "vllm", "llamacpp"])
+async def test_backend_health_check(backend: str, mock_backend_client: MagicMock) -> None:
+    ...
+```
+
+---
+
+## File Organization Rules
+
+- One class per file for backends and workloads.
+- `__init__.py` exports: only expose the concrete class + its config dataclass.
+- `BACKEND_MAP: dict[str, type[AbstractBackend]]` lives in `bench/backends/__init__.py`.
+- Results CSV columns must be consistent across all backends (never add backend-specific columns).
+- Shell scripts in `quantization/` and `trtllm/` must have `#!/usr/bin/env bash` and `set -euo pipefail`.
+
+---
+
+## What NOT To Do
+
+- **Do NOT use `requests` library** in async code — use `aiohttp` or `openai` SDK async client.
+- **Do NOT hardcode API keys** anywhere — always env vars via dotenv.
+- **Do NOT use `time.time()`** for TTFT measurement — use `time.perf_counter()` for sub-millisecond accuracy.
+- **Do NOT skip warmup** before recording metrics — warmup runs are mandatory.
+- **Do NOT add new dependencies** without updating `pyproject.toml` AND `requirements.txt`.
+- **Do NOT write results to stdout** — results go to `results/` directory as JSON/CSV files.
+- **Do NOT use print() anywhere** — use logging.
+- **Do NOT catch `Exception` broadly** — catch specific exception types.
+- **Do NOT use `asyncio.run()` inside library functions** — only in CLI entrypoints.
+- **Do NOT mix sync and async I/O** — if a backend is async, all its methods must be async.
+- **Do NOT use global mutable state** — pass config explicitly through function arguments.
+- **Do NOT commit `.env` files** — they are in `.gitignore`.
+
+---
+
+## CI/CD
+
+- GitHub Actions runs: `ruff check .`, `mypy --strict`, `pytest tests/ -m "not integration"` on every PR.
+- Docker image for benchmarks: `nvcr.io/nvidia/pytorch:24.03-py3` base.
+- K8s Job in `deploy/k8s/bench-job.yaml` is the canonical way to run full sweeps in CI.
+
+---
+
+## Cross-Repo Standards
+
+- All secrets via `.env` + `python-dotenv` (`.env.template` documents all vars).
+- `ruff` + `mypy` enforced in CI — no exceptions.
+- `docker-compose.yml` at repo root for local development.
+- `just` task runner for common operations (`just bench`, `just report`, `just test`).
