@@ -1,0 +1,31 @@
+# Full benchmark sweep configuration
+# Runs all combinations of model x backend x quant x batch_size
+
+models:
+  - name: llama3-8b
+    hf_id: meta-llama/Meta-Llama-3-8B-Instruct
+  - name: llama3-70b
+    hf_id: meta-llama/Meta-Llama-3-70B-Instruct
+  - name: mistral-7b
+    hf_id: mistralai/Mistral-7B-Instruct-v0.2
+
+backends:
+  - vllm
+  - triton
+  - llamacpp
+
+quantization:
+  - none          # fp16 baseline
+  - gptq_4bit
+  - awq_4bit
+  - gguf_q4_k_m
+  - gguf_q8_0
+
+batch_sizes: [1, 4, 8, 16, 32]
+
+sequence_lengths: [512, 1024, 2048, 4096]
+
+num_requests: 100
+warmup_requests: 10
+
+output_dir: ./results

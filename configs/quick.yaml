@@ -1,0 +1,22 @@
+# Quick benchmark config — single model, fewer combinations
+# Use for CI or rapid iteration
+
+models:
+  - name: llama3-8b
+    hf_id: meta-llama/Meta-Llama-3-8B-Instruct
+
+backends:
+  - vllm
+
+quantization:
+  - none
+  - awq_4bit
+
+batch_sizes: [1, 4]
+
+sequence_lengths: [512, 1024]
+
+num_requests: 20
+warmup_requests: 3
+
+output_dir: ./results
