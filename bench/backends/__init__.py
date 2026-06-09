@@ -11,7 +11,8 @@ Backend classes all share the same interface as :class:`VLLMBackend`:
 
 * ``__init__(self, base_url: str, model: str, ...)``
 * ``health_check(self) -> bool``
-* ``infer(self, request_id: int, prompt: str, max_tokens: int, temperature: float) -> RequestResult``  # noqa: E501
+* ``infer(self, request_id: int, prompt: str,
+  max_tokens: int, temperature: float) -> RequestResult``
 """
 
 from bench.backends.llamacpp_backend import LlamaCppBackend

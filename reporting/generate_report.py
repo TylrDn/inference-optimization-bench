@@ -56,7 +56,11 @@ def write_report(summaries: List[Dict], output_path: str):
         "|---|---|---|---|---|",
     ]
     for s in summaries:
-        lines.append(f"| {s['run']} | {s['n_requests']} | {s['latency_p50_ms']} | {s['latency_p95_ms']} | {s['latency_mean_ms']} |")
+        row = (
+            f"| {s['run']} | {s['n_requests']}"
+            f" | {s['latency_p50_ms']} | {s['latency_p95_ms']} | {s['latency_mean_ms']} |"
+        )
+        lines.append(row)
 
     with open(output_path, "w") as f:
         f.write("\n".join(lines))
