@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import numpy as np
-import pytest
 
 from bench.backends.llamacpp_backend import LlamaCppBackend
 from bench.backends.triton_backend import TritonBackend
