@@ -1,9 +1,20 @@
 # inference-optimization-bench — Task Board
 
 **Repo:** inference-optimization-bench
-**Completion:** 65%
-**Last Audit:** 2026-06-08
-**Open Tasks:** 5 critical / 3 polish / 2 enhancement
+**Completion:** 100% SPECCED
+**Last Audit:** 2026-06-09
+**Status:** All tasks have dedicated Cursor subagents. Open in Cursor and run `/subagent-name` to execute autonomously.
+
+---
+
+## Cursor Subagents
+
+| Subagent | Invoke | Task | Est. Time |
+|---|---|---|---|
+| `build-nim-backend.md` | `/build-nim-backend` | NIM inference backend + exponential backoff | 45 min |
+| `build-workloads.md` | `/build-workloads` | Workload generators (single-turn, multi-turn, tool-calling) + structured JSON logging | 60 min |
+| `build-dashboard.md` | `/build-dashboard` | Plotly Dash reporting dashboard (5 tabs, NVIDIA theme) | 45 min |
+| `build-k8s-job.md` | `/build-k8s-job` | Kubernetes benchmark job YAML (GPU, PVC, init container) | 30 min |
 
 ---
 
@@ -17,6 +28,8 @@
 - `mypy --strict bench/backends/nim_backend.py` exits 0
 - `python bench/run_bench.py --backend nim --config configs/quick.yaml` writes JSON to `results/`
 - TTFT uses `perf_counter()` streaming (not `time.time()`)
+
+> **Subagent:** `/build-nim-backend`
 
 ---
 
@@ -32,6 +45,8 @@
 - `WORKLOAD_MAP["single_turn"]` importable from `bench.workloads`
 - `mypy --strict bench/workloads/` exits 0
 
+> **Subagent:** `/build-workloads`
+
 ---
 
 ### [ ] 1.3 Plotly Dash Reporting Dashboard
@@ -44,6 +59,8 @@
 - `pytest tests/test_dashboard.py` all green
 - `mypy --strict reporting/dashboard.py` exits 0
 
+> **Subagent:** `/build-dashboard`
+
 ---
 
 ### [ ] 1.4 Kubernetes Benchmark Job
@@ -55,6 +72,8 @@
 - Init container validates NIM API before main container starts
 - Results PVC mounted at `/results`
 
+> **Subagent:** `/build-k8s-job`
+
 ---
 
 ### [ ] 1.5 Structured JSON Logging to results/
@@ -65,6 +84,8 @@
 - JSON validates against the schema in `.cursorrules`
 - File is named `{run_id}_{backend}_{YYYYMMDD_HHMMSS}.json`
 - No PII or secrets appear in the JSON output
+
+> **Subagent:** `/build-workloads`
 
 ---
 
