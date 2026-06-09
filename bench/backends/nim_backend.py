@@ -21,7 +21,6 @@ import httpx
 
 from bench.metrics import RequestResult
 
-
 # ---------------------------------------------------------------------------
 # Helper: iterate over SSE lines from a streaming httpx response
 # ---------------------------------------------------------------------------

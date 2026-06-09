@@ -31,7 +31,6 @@ import pytest
 from bench.backends.nim_backend import NIMBackend
 from bench.metrics import RequestResult
 
-
 # ---------------------------------------------------------------------------
 # SSE stream helpers
 # ---------------------------------------------------------------------------

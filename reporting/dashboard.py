@@ -27,11 +27,10 @@ import os
 import sys
 from typing import Optional
 
-import pandas as pd
-
 import dash
-from dash import dcc, html
+import pandas as pd
 import plotly.graph_objects as go
+from dash import dcc, html
 
 # ---------------------------------------------------------------------------
 # NVIDIA colour scheme
@@ -223,7 +222,7 @@ def build_ttft_chart(df: pd.DataFrame) -> go.Figure:
     )
     fig.update_layout(
         **_LAYOUT_COMMON,
-        title=dict(text="Mean Time-to-First-Token (TTFT) by Backend (ms)", font=dict(color=_TEXT_COLOR)),
+        title=dict(text="Mean Time-to-First-Token (TTFT) by Backend (ms)", font=dict(color=_TEXT_COLOR)),  # noqa: E501
         xaxis_title="Backend",
         yaxis_title="Mean TTFT (ms)",
     )

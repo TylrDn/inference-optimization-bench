@@ -1,7 +1,10 @@
 """llama.cpp benchmark backend — calls llama-server HTTP endpoint."""
 from __future__ import annotations
+
 import time
+
 import httpx
+
 from bench.metrics import RequestResult, get_gpu_vram_used_mib
 
 

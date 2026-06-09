@@ -9,8 +9,8 @@ individual modules.
 """
 
 from bench.workloads.base_workload import WorkloadBase, WorkloadSample
-from bench.workloads.single_turn import SingleTurnWorkload
 from bench.workloads.multi_turn import MultiTurnWorkload
+from bench.workloads.single_turn import SingleTurnWorkload
 from bench.workloads.tool_calling import ToolCallingWorkload
 
 WORKLOAD_MAP: dict[str, type[WorkloadBase]] = {

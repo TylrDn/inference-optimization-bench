@@ -1,5 +1,5 @@
 """Tests for benchmark metrics module."""
-from bench.metrics import RequestResult, BenchmarkReport
+from bench.metrics import BenchmarkReport, RequestResult
 
 
 def make_result(i: int, latency_ms: float, tokens: int = 50) -> RequestResult:

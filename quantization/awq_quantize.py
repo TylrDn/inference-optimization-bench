@@ -1,9 +1,10 @@
 """AWQ 4-bit quantization pipeline using AutoAWQ."""
 from __future__ import annotations
+
 import argparse
 
 
-def quantize_awq(model_id: str, output_dir: str, bits: int = 4, group_size: int = 128, zero_point: bool = True):
+def quantize_awq(model_id: str, output_dir: str, bits: int = 4, group_size: int = 128, zero_point: bool = True):  # noqa: E501
     from awq import AutoAWQForCausalLM
     from transformers import AutoTokenizer
 

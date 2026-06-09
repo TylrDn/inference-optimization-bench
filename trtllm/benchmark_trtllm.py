@@ -1,10 +1,12 @@
 """Benchmark TRT-LLM engine: TTFT, throughput, VRAM."""
 from __future__ import annotations
+
 import argparse
 import csv
 import time
 from pathlib import Path
-from bench.metrics import RequestResult, BenchmarkReport, get_gpu_vram_used_mib
+
+from bench.metrics import BenchmarkReport, RequestResult, get_gpu_vram_used_mib
 
 PROMPTS = [
     "Explain PagedAttention and how it reduces GPU memory fragmentation.",

@@ -1,5 +1,6 @@
 """Inference benchmark metrics: TTFT, TPOT, throughput, VRAM."""
 from __future__ import annotations
+
 import statistics
 from dataclasses import dataclass, field
 from typing import List, Optional

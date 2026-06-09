@@ -499,7 +499,7 @@ _TEMPLATES: Final[list[dict]] = [
                     "(Python, JavaScript, Rust) as calibration.\n\n"
                     "2. Keep group_size=128 for now; if accuracy is still poor "
                     "try group_size=64 (doubles KV-cache but recovers accuracy).\n\n"
-                    "3. Ensure the MoE router weights (`model.layers.*.block_sparse_moe.gate.weight`) "
+                    "3. Ensure the MoE router weights (`model.layers.*.block_sparse_moe.gate.weight`) "  # noqa: E501
                     "are excluded from quantisation with AWQ's `modules_to_not_convert` list.\n\n"
                     "Re-run with 512 calibration samples; more than that rarely "
                     "helps for AWQ."

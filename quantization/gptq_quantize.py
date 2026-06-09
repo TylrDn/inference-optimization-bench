@@ -1,11 +1,12 @@
 """GPTQ 4-bit quantization pipeline using AutoGPTQ."""
 from __future__ import annotations
+
 import argparse
 
 
 def quantize_gptq(model_id: str, output_dir: str, bits: int = 4, group_size: int = 128):
-    from transformers import AutoTokenizer
     from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+    from transformers import AutoTokenizer
 
     print(f"Loading tokenizer: {model_id}")
     tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True)

@@ -1,12 +1,14 @@
 """Full benchmark sweep across config combinations."""
 from __future__ import annotations
+
 import argparse
 import subprocess
 import sys
+
 import yaml
 
 
-def run_single(model: str, backend: str, quant: str, batch_size: int, seq_len: int, num_requests: int, output_dir: str):
+def run_single(model: str, backend: str, quant: str, batch_size: int, seq_len: int, num_requests: int, output_dir: str):  # noqa: E501
     cmd = [
         sys.executable, "-m", "bench.run_bench",
         "--model", model,

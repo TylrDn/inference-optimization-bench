@@ -1,11 +1,12 @@
 """Run a TRT-LLM compiled engine and return generation output."""
 from __future__ import annotations
+
 import argparse
 
 
 def run_trtllm(engine_dir: str, prompt: str, max_tokens: int = 512) -> str:
-    from tensorrt_llm.runtime import ModelRunner
     import torch
+    from tensorrt_llm.runtime import ModelRunner
 
     runner = ModelRunner.from_dir(engine_dir=engine_dir, rank=0)
     input_ids = runner.tokenizer.encode(prompt, return_tensors="pt").to("cuda")

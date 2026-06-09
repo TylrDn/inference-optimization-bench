@@ -1,14 +1,16 @@
 """Single benchmark run CLI."""
 from __future__ import annotations
+
 import argparse
 import csv
 import time
 from pathlib import Path
+
+from bench.backends.llamacpp_backend import LlamaCppBackend
+from bench.backends.triton_backend import TritonBackend
+from bench.backends.vllm_backend import VLLMBackend
 from bench.metrics import BenchmarkReport
 from bench.warmup import warmup_backend
-from bench.backends.vllm_backend import VLLMBackend
-from bench.backends.triton_backend import TritonBackend
-from bench.backends.llamacpp_backend import LlamaCppBackend
 
 PROMPTS = [
     "Explain the difference between GPTQ and AWQ quantization in three sentences.",

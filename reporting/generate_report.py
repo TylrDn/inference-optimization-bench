@@ -1,10 +1,11 @@
 """Generate markdown + Plotly chart report from benchmark CSV results."""
 from __future__ import annotations
+
 import argparse
 import csv
 import glob
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
 
 def load_results(results_dir: str) -> List[Dict]:
@@ -22,8 +23,8 @@ def load_results(results_dir: str) -> List[Dict]:
 
 
 def compute_summary(rows: List[Dict]) -> List[Dict]:
-    from collections import defaultdict
     import statistics
+    from collections import defaultdict
     groups = defaultdict(list)
     for row in rows:
         key = row.get("_file", "unknown")
