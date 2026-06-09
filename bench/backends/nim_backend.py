@@ -232,7 +232,7 @@ class NIMBackend:
                 json=payload,
             ) as response:
                 if response.status_code == 429:
-                    raise _RateLimitError(f"HTTP 429 from NIM endpoint")
+                    raise _RateLimitError("HTTP 429 from NIM endpoint")
                 if response.status_code >= 500:
                     raise RuntimeError(
                         f"NIMBackend: server error HTTP {response.status_code}"

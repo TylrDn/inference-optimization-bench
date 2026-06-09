@@ -2,9 +2,7 @@
 from __future__ import annotations
 import argparse
 import csv
-import os
 import time
-import uuid
 from pathlib import Path
 from bench.metrics import BenchmarkReport
 from bench.warmup import warmup_backend

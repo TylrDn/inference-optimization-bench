@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import csv
 import glob
-import os
 from pathlib import Path
 from typing import List, Dict
 
@@ -16,7 +15,7 @@ def load_results(results_dir: str) -> List[Dict]:
             for row in reader:
                 # Add run metadata from filename
                 fname = Path(path).stem
-                parts = fname.split("_")
+                fname.split("_")
                 row["_file"] = fname
                 rows.append(row)
     return rows

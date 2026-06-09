@@ -1,7 +1,6 @@
 """Triton benchmark backend — calls Triton HTTP endpoint."""
 from __future__ import annotations
 import time
-from typing import Optional
 from bench.metrics import RequestResult, get_gpu_vram_used_mib
 
 try:

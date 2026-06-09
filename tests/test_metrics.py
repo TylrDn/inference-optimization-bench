@@ -1,5 +1,4 @@
 """Tests for benchmark metrics module."""
-import pytest
 from bench.metrics import RequestResult, BenchmarkReport
 
 

@@ -1,7 +1,6 @@
 """Run a TRT-LLM compiled engine and return generation output."""
 from __future__ import annotations
 import argparse
-import os
 
 
 def run_trtllm(engine_dir: str, prompt: str, max_tokens: int = 512) -> str:

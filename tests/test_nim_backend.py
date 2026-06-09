@@ -22,14 +22,13 @@ from __future__ import annotations
 
 import json
 import time
-from io import BytesIO
 from types import TracebackType
 from typing import Any, Iterator
-from unittest.mock import MagicMock, patch, PropertyMock, call
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bench.backends.nim_backend import NIMBackend, _RateLimitError
+from bench.backends.nim_backend import NIMBackend
 from bench.metrics import RequestResult
 
 

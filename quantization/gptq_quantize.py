@@ -1,6 +1,5 @@
 """GPTQ 4-bit quantization pipeline using AutoGPTQ."""
 from __future__ import annotations
-import os
 import argparse
 
 

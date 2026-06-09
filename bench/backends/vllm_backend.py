@@ -2,7 +2,6 @@
 from __future__ import annotations
 import time
 import httpx
-from typing import Optional
 from bench.metrics import RequestResult, get_gpu_vram_used_mib
 
 

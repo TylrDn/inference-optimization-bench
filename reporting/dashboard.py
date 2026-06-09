@@ -31,9 +31,7 @@ import pandas as pd
 
 import dash
 from dash import dcc, html
-from dash.dependencies import Input, Output
 import plotly.graph_objects as go
-import plotly.express as px
 
 # ---------------------------------------------------------------------------
 # NVIDIA colour scheme
