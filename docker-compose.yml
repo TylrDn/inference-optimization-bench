@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    image: inference-optimization-bench:latest
+    container_name: inference-bench-dashboard
+    env_file: .env
+    ports:
+      - "8050:8050"
+    volumes:
+      - ./results:/app/results
+    command:
+      [
+        "python",
+        "reporting/dashboard.py",
+        "--results-dir",
+        "/app/results",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8050",
+      ]
+
+  bench:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    image: inference-optimization-bench:latest
+    container_name: inference-bench-runner
+    env_file: .env
+    volumes:
+      - ./results:/app/results
+    profiles: ["bench"]
+    command:
+      [
+        "python",
+        "bench/run_bench.py",
+        "--model",
+        "llama3-8b",
+        "--backend",
+        "vllm",
+        "--num-requests",
+        "5",
+      ]

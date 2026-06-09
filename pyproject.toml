@@ -22,3 +22,10 @@ explicit_package_bases = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.coverage.run]
+omit = [
+    "bench/run_bench.py",
+    "bench/sweep.py",
+    "reporting/generate_report.py",
+]

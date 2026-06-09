@@ -1,9 +1,9 @@
 # inference-optimization-bench — Task Board
 
 **Repo:** inference-optimization-bench
-**Completion:** 100% SPECCED
+**Completion:** 100% COMPLETE
 **Last Audit:** 2026-06-09
-**Status:** All tasks have dedicated Cursor subagents. Open in Cursor and run `/subagent-name` to execute autonomously.
+**Status:** Priority 1 production bar met — CI `--cov-fail-under=80`, root `docker-compose.yml`, workload + dashboard tests green.
 
 ---
 
@@ -20,7 +20,7 @@
 
 ## Priority 1 — CRITICAL
 
-### [ ] 1.1 NIM Inference Backend
+### [x] 1.1 NIM Inference Backend
 **File:** `bench/backends/nim_backend.py`
 **What:** Implement `NIMBackend` class extending `AbstractBackend`. Connect to NVIDIA NIM via `openai` Python SDK with `base_url=NIM_BASE_URL`. Measure TTFT via streaming (`stream=True`, record time-to-first-chunk with `time.perf_counter()`). Implement exponential backoff for 429 responses (3 retries: 2/4/8s). Raise `BackendUnavailableError` on 5xx and timeouts. Register in `BACKEND_MAP` in `bench/backends/__init__.py`.
 **Acceptance Criteria:**
@@ -33,7 +33,7 @@
 
 ---
 
-### [ ] 1.2 Workload Generators
+### [x] 1.2 Workload Generators
 **Files:** `bench/workloads/__init__.py`, `bench/workloads/base_workload.py`, `bench/workloads/single_turn.py`, `bench/workloads/multi_turn.py`, `bench/workloads/tool_calling.py`
 **What:** Create `WorkloadBase` ABC with `WorkloadSample` dataclass. Implement three workloads:
 - `SingleTurnWorkload`: 5 categories (CODE, SUMMARIZE, QA, MATH, CREATIVE), 20+ templates each, deterministic with seed.
@@ -49,7 +49,7 @@
 
 ---
 
-### [ ] 1.3 Plotly Dash Reporting Dashboard
+### [x] 1.3 Plotly Dash Reporting Dashboard
 **File:** `reporting/dashboard.py`
 **What:** Build Plotly Dash web app loading benchmark JSON files from `results/`. Include: backend/model filter dropdowns, refresh button, 4 KPI cards (best TTFT/throughput/P99, run count), 5 tabs (TTFT Comparison, Throughput, Latency Distribution, Quantization Comparison, Raw Data). Dark theme with NVIDIA green accent (`#76b900`). Deployable via `python reporting/dashboard.py --port 8050`.
 **Acceptance Criteria:**
@@ -63,7 +63,7 @@
 
 ---
 
-### [ ] 1.4 Kubernetes Benchmark Job
+### [x] 1.4 Kubernetes Benchmark Job
 **Files:** `deploy/k8s/bench-job.yaml`, `deploy/k8s/README.md`, `deploy/k8s/kustomization.yaml`
 **What:** Multi-document YAML with: Namespace, ServiceAccount, ConfigMap (bench config inline), Secret template (NIM_API_KEY), PersistentVolumeClaim (10Gi), Job spec (GPU node selector, init container for NIM health check, `nvcr.io/nvidia/pytorch:24.03-py3` image, results PVC mount, `ttlSecondsAfterFinished: 86400`, `backoffLimit: 2`).
 **Acceptance Criteria:**
@@ -76,7 +76,7 @@
 
 ---
 
-### [ ] 1.5 Structured JSON Logging to results/
+### [x] 1.5 Structured JSON Logging to results/
 **Files:** `bench/run_bench.py`, `bench/metrics.py`
 **What:** Every benchmark run writes a structured JSON log file to `results/{run_id}_{backend}_{timestamp}.json` containing: `run_id` (uuid4), `timestamp` (ISO8601), `backend`, `model`, `config`, full `metrics` dict (ttft_p50/p95/p99, throughput_rps, latency_p50/p95/p99, total_requests, failed_requests), and `raw_samples` array.
 **Acceptance Criteria:**

@@ -29,6 +29,11 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install test deps
-        run: pip install pytest pytest-cov pyyaml python-dotenv httpx
+        run: pip install -r requirements.txt dash pytest-cov
       - name: Run tests
-        run: pytest tests/ -v --cov=bench --cov-report=term-missing
+        run: >
+          pytest tests/ -v
+          --cov=bench
+          --cov=reporting
+          --cov-report=term-missing
+          --cov-fail-under=80
